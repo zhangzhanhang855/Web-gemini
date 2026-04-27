@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Vercel 镜像</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; margin: 0; padding: 20px; background: #f0f0f5; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        #chat { flex: 1; background: #fff; border-radius: 12px; padding: 20px; overflow-y: auto; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .msg { margin-bottom: 15px; padding: 10px 15px; border-radius: 8px; max-width: 85%; line-height: 1.6; word-wrap: break-word; }
+        .msg.user { background: #007aff; color: white; margin-left: auto; }
+        .msg.ai { background: #e9e9eb; color: black; margin-right: auto; }
+        .input-box { display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; outline: none; }
+        button { padding: 12px 24px; background: #007aff; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        button:disabled { background: #a1c8ff; }
+    </style>
+</head>
+<body>
+    <div id="chat"><div class="msg ai">系统已托管至 Vercel，随时可以开始。</div></div>
+    <div class="input-box">
+        <input type="text" id="ipt" placeholder="输入你想问的问题..." onkeydown="if(event.key==='Enter') send()">
+        <button id="btn" onclick="send()">发送</button>
+    </div>
+
+    <script>
+        const chat = document.getElementById('chat');
+        const ipt = document.getElementById('ipt');
+        const btn = document.getElementById('btn');
+
+        async function send() {
+            const text = ipt.value.trim();
+            if (!text) return;
+
+            chat.innerHTML += `<div class="msg user">${text}</div>`;
+            ipt.value = '';
+            btn.disabled = true;
+            chat.scrollTop = chat.scrollHeight;
+
+            try {
+                // 注意这里：直接请求当前域名下的 /api/chat 路径
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: text })
+                });
+                
+                if (!res.ok) throw new Error('API 请求异常');
+                const data = await res.json();
+                
+                const formattedReply = data.reply ? data.reply.replace(/\n/g, '<br>') : data.error;
+                chat.innerHTML += `<div class="msg ai">${formattedReply}</div>`;
+            } catch (err) {
+                chat.innerHTML += `<div class="msg ai" style="color:red;">网络错误，请检查 Vercel 部署日志</div>`;
+            }
+            
+            btn.disabled = false;
+            chat.scrollTop = chat.scrollHeight;
+        }
+    </script>
+</body>
+</html>
